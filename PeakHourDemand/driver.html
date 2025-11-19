@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ride Booking with Traffic Data</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+  <style>
+    body { margin: 0; padding: 0; }
+    #map { width: 100%; height: 100vh; }
+    
+    /* Popup Styling */
+    .popup-container {
+      position: absolute;
+      top: 20%;
+      left: 50%;
+      transform: translate(-50%, 0);
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+      z-index: 1000;
+      text-align: center;
+      display: none;
+    }
+    .popup-container button {
+      margin: 5px;
+      padding: 10px;
+      width: 40%;
+    }
+    
+    /* Top-right Alert */
+    .alert {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: orange;
+      color: white;
+      padding: 10px;
+      border-radius: 5px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top-right alert -->
+  <div id="alert" class="alert">New Ride Request!</div>
+
+  <!-- Ride Request Popup -->
+  <div id="popup" class="popup-container">
+    <h3>New Ride Request</h3>
+    <p id="ride-info"></p>
+    <p id="fare">Estimated Fare: --</p>
+    <button onclick="acceptRide()">Accept</button>
+    <button onclick="rejectRide()">Reject</button>
+  </div>
+  <div class="container">
+    <h2>Displayed Text</h2>
+    <p id="displayText"></p>
+    <button onclick="goBack()">Go Back</button>
+</div>
+
+  <!-- Map -->
+  <div id="map"></div>
+
+  <!-- Scripts -->
+  <script src="https://unpkg.com/leaflet@1.8.0/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+
+  <script>
+    var map = L.map("map").setView([12.9716, 77.5946], 13);
+
+    // OpenStreetMap Tiles
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "© OpenStreetMap contributors"
+    }).addTo(map);
+
+    var routeControl;
+
+    // Simulate receiving a new ride request from the server
+    function triggerRideRequest(source, destination) {
+      // Show alert
+      document.getElementById("alert").style.display = "block";
+
+      // Delay showing the popup
+      setTimeout(() => {
+        document.getElementById("alert").style.display = "none";
+        document.getElementById("popup").style.display = "block";
+
+        document.getElementById("ride-info").innerText = 
+          `Pickup: ${source.lat}, ${source.lng}\nDrop: ${destination.lat}, ${destination.lng}`;
+
+        // Plot the route on the map
+        if (routeControl) map.removeControl(routeControl);
+        routeControl = L.Routing.control({
+          waypoints: [
+            L.latLng(source.lat, source.lng),
+            L.latLng(destination.lat, destination.lng)
+          ],
+          routeWhileDragging: true,
+          lineOptions: { styles: [{ color: "blue", weight: 5 }] }
+        }).addTo(map);
+
+        // Estimate fare
+        calculateFare(source, destination);
+      }, 3000); // Show popup after 3 seconds
+    }
+
+    // Calculate Estimated Fare (₹10/km)
+    function calculateFare(source, destination) {
+      let distance = map.distance(
+        L.latLng(source.lat, source.lng),
+        L.latLng(destination.lat, destination.lng)
+      ) / 1000; // Convert to km
+      let fare = Math.max(30, distance * 10).toFixed(2);
+      document.getElementById("fare").innerText = `Estimated Fare: ₹${fare}`;
+    }
+
+    // Accept Ride
+    function acceptRide() {
+      alert("Ride Accepted!");
+      document.getElementById("popup").style.display = "none";
+    }
+
+    // Reject Ride
+    function rejectRide() {
+      alert("Ride Rejected!");
+      document.getElementById("popup").style.display = "none";
+    }
+
+    // Example: Trigger a ride request with source and destination
+    triggerRideRequest({ lat: 12.9716, lng: 77.5946 }, { lat: 12.9352, lng: 77.6245 });
+
+  </script>
+</body>
+</html>
